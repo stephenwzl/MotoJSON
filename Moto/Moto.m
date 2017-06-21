@@ -7,162 +7,55 @@
 //
 
 #import "Moto.h"
+#import "MotoClassInfo.h"
 #import <CoreFoundation/CoreFoundation.h>
+#import <objc/runtime.h>
 
 #define BUFFER_SIZE 64
+#define MT_BRIDGE_CAST (void *)
+#define MT_PUSH(__x__) void *temp = __x__;
+#define MT_POP(__x__) __x__ = temp;
 
-@interface MTParserState : NSObject
+struct MTParserState
 {
-  @public
-  NSString *source;
+  CFStringRef source; //points to NSString
   int BOMLength;
   NSStringEncoding encoding;
-  void (*updateBuffer)(MTParserState *);
+  void (*updateBuffer)(struct MTParserState *);
   unichar buffer[BUFFER_SIZE];
   NSUInteger bufferIndex;
   NSUInteger bufferLength;
   NSInteger sourceIndex;
   BOOL mutableStrings;
   BOOL mutableContainers;
-  NSError *error;
-}
-@end
-@implementation MTParserState
+  MotoClassInfoRef targetClassInfo;
+  MotoClassInfoRef currentClassInfo;
+  void *error;  //points to NSError
+} ;
 
-@end
-
-typedef struct ParserStateStruct
-{
-  /**
-   * The data source.  This is either an NSString or an NSStream, depending on
-   * the source.
-   */
-  void* source;
-  /**
-   * The length of the byte order mark in the source.  0 if there is no BOM.
-   */
-  int BOMLength;
-  /**
-   * The string encoding used in the source.
-   */
-  NSStringEncoding enc;
-  /**
-   * Function used to pull the next BUFFER_SIZE characters from the string.
-   */
-  void (*updateBuffer)(struct ParserStateStruct*);
-  /**
-   * Buffer used to store the next data from the input stream.
-   */
-  unichar buffer[BUFFER_SIZE];
-  /**
-   * The index of the parser within the buffer.
-   */
-  NSUInteger bufferIndex;
-  /**
-   * The number of bytes stored within the buffer.
-   */
-  NSUInteger bufferLength;
-  /**
-   * The index of the parser within the source.
-   */
-  NSInteger sourceIndex;
-  /**
-   * Should the parser construct mutable string objects?
-   */
-  BOOL mutableStrings;
-  /**
-   * Should the parser construct mutable containers?
-   */
-  BOOL mutableContainers;
-  /**
-   * Error value, if this parser is currently in an error state, nil otherwise.
-   */
-  void *error;
-} ParserState;
+typedef struct MTParserState* MTParserStateRef;
 
 #pragma mark - pre definition
-static id parseValue(MTParserState *state);
+static inline id parseValue(MTParserStateRef state);
 
-static void
-getEncoding(const uint8_t BOM[4], MTParserState *state)
-{
-  NSStringEncoding enc = NSUTF8StringEncoding;
-  int BOMLength = 0;
-  
-  if ((BOM[0] == 0xEF) && (BOM[1] == 0xBB) && (BOM[2] == 0xBF))
-  {
-    BOMLength = 3;
-  }
-  else if ((BOM[0] == 0xFE) && (BOM[1] == 0xFF))
-  {
-    BOMLength = 2;
-    enc = NSUTF16BigEndianStringEncoding;
-  }
-  else if ((BOM[0] == 0xFF) && (BOM[1] == 0xFE))
-  {
-    if ((BOM[2] == 0) && (BOM[3] == 0))
-    {
-      BOMLength = 4;
-      enc = NSUTF32LittleEndianStringEncoding;
-    }
-    else
-    {
-      BOMLength = 2;
-      enc = NSUTF16LittleEndianStringEncoding;
-    }
-  }
-  else if ((BOM[0] == 0)
-           && (BOM[1] == 0)
-           && (BOM[2] == 0xFE)
-           && (BOM[3] == 0xFF))
-  {
-    BOMLength = 4;
-    enc = NSUTF32BigEndianStringEncoding;
-  }
-  else if (BOM[0] == 0)
-  {
-    // TODO: Throw an error if this doesn't match one of the patterns
-    // described in section 3 of RFC4627
-    if (BOM[1] == 0)
-    {
-      enc = NSUTF32BigEndianStringEncoding;
-    }
-    else
-    {
-      enc = NSUTF16BigEndianStringEncoding;
-    }
-  }
-  else if (BOM[1] == 0)
-  {
-    if (BOM[2] == 0)
-    {
-      enc = NSUTF32LittleEndianStringEncoding;
-    }
-    else
-    {
-      enc = NSUTF16LittleEndianStringEncoding;
-    }
-  }
-  state->encoding = enc;
-  state->BOMLength = BOMLength;
+static inline MotoPropertyInfoRef propertyInfoForKey(MTParserStateRef state, NSString *key) {
+  NSDictionary *info = (__bridge NSDictionary *)state->currentClassInfo->propertyInfo;
+  return (__bridge void *)[info objectForKey:key];
 }
 
 static inline void
-updateStringBuffer(MTParserState* state)
-{
-  NSRange r = {state->sourceIndex, BUFFER_SIZE};
-  NSUInteger end = [state->source length];
+updateStringBuffer(MTParserStateRef state) {
+  CFRange r = CFRangeMake(state->sourceIndex, BUFFER_SIZE);
+  NSUInteger end = CFStringGetLength(state->source);
   
-  if (end - state->sourceIndex < BUFFER_SIZE)
-  {
+  if (end - state->sourceIndex < BUFFER_SIZE) {
     r.length = end - state->sourceIndex;
   }
-  [state->source getCharacters: state->buffer range: r];
+  CFStringGetCharacters(state->source, r, state->buffer);
   state->sourceIndex = r.location;
   state->bufferIndex = 0;
   state->bufferLength = r.length;
-  if (r.length == 0)
-  {
+  if (r.length == 0) {
     state->buffer[0] = 0;
   }
 }
@@ -172,10 +65,9 @@ updateStringBuffer(MTParserState* state)
  * Returns the current character.
  */
 static inline unichar
-currentChar(MTParserState *state)
+currentChar(MTParserStateRef state)
 {
-  if (state->bufferIndex >= state->bufferLength)
-  {
+  if (state->bufferIndex >= state->bufferLength) {
     state->updateBuffer(state);
   }
   return state->buffer[state->bufferIndex];
@@ -185,12 +77,11 @@ currentChar(MTParserState *state)
  * Consumes a character.
  */
 static inline unichar
-consumeChar(MTParserState *state)
+consumeChar(MTParserStateRef state)
 {
   state->sourceIndex++;
   state->bufferIndex++;
-  if (state->bufferIndex >= state->bufferLength)
-  {
+  if (state->bufferIndex >= state->bufferLength) {
     state->updateBuffer(state);
   }
   return currentChar(state);
@@ -201,7 +92,7 @@ consumeChar(MTParserState *state)
  * character.  Returns 0 if we're past the end of the input.
  */
 static inline unichar
-consumeSpace(MTParserState *state)
+consumeSpace(MTParserStateRef state)
 {
   while (isspace(currentChar(state)))
   {
@@ -214,7 +105,7 @@ consumeSpace(MTParserState *state)
  * Sets an error state.
  */
 static void
-parseError(MTParserState *state)
+parseError(MTParserStateRef state)
 {
   /* TODO: Work out what stuff should go in this and probably add them to
    * parameters for this function.
@@ -225,13 +116,13 @@ parseError(MTParserState *state)
                                 (char)currentChar(state), state->sourceIndex]),
                             NSLocalizedFailureReasonErrorKey,
                             nil];
-  state->error = [NSError errorWithDomain: NSCocoaErrorDomain
+  state->error = (__bridge void *)([NSError errorWithDomain: NSCocoaErrorDomain
                                                        code: 0
-                                                   userInfo: userInfo];
+                                                   userInfo: userInfo]);
 }
 
-static NSString*
-parseString(MTParserState *state)
+static inline NSString*
+parseString(MTParserStateRef state)
 {
   NSMutableString *val = nil;
   unichar buffer[BUFFER_SIZE];
@@ -279,7 +170,7 @@ parseString(MTParserState *state)
             next = consumeChar(state);
             if (!isxdigit(next))
             {
-//              [val release];
+              [val release];
               parseError(state);
               return nil;
             }
@@ -306,7 +197,7 @@ parseString(MTParserState *state)
       else
       {
         [val appendString: str];
-//        [str release];
+        [str release];
       }
     }
     next = consumeChar(state);
@@ -314,7 +205,7 @@ parseString(MTParserState *state)
   
   if (currentChar(state) != '"')
   {
-//    [val release];
+    [val release];
     parseError(state);
     return nil;
   }
@@ -332,11 +223,10 @@ parseString(MTParserState *state)
     else
     {
       [val appendString: str];
-//      [str release];
+      [str release];
     }
   }
-  else if (nil == val)
-  {
+  else if (nil == val){
     val = [NSMutableString new];
   }
   if (!state->mutableStrings)
@@ -352,7 +242,7 @@ parseString(MTParserState *state)
 }
 
 static NSArray*
-parseArray(MTParserState *state)
+parseArray(MTParserStateRef state)
 {
   unichar c = consumeSpace(state);
   NSMutableArray *array;
@@ -395,11 +285,10 @@ parseArray(MTParserState *state)
 }
 
 static NSDictionary*
-parseObject(MTParserState *state)
+parseObject(MTParserStateRef state)
 {
   unichar c = consumeSpace(state);
-  NSMutableDictionary *dict;
-  
+  id currentObject;
   if (c != '{')
   {
     parseError(state);
@@ -407,7 +296,7 @@ parseObject(MTParserState *state)
   }
   // Eat the {
   consumeChar(state);
-  dict = [NSMutableDictionary new];
+  currentObject = class_createInstance(state->currentClassInfo->cls, 0);
   c = consumeSpace(state);
   while (c != '}')
   {
@@ -416,29 +305,38 @@ parseObject(MTParserState *state)
     
     if (nil == key)
     {
-//      [dict release];
+//      currentObject = object_dispose(currentObject);
       return nil;
     }
     c = consumeSpace(state);
     if (':' != c)
     {
-//      [key release];
-//      [dict release];
+      [key release];
+//      currentObject = object_dispose(currentObject);
       parseError(state);
       return nil;
     }
     // Eat the :
     consumeChar(state);
+    MT_PUSH(state->currentClassInfo);
+    MotoPropertyInfoRef info = propertyInfoForKey(state, key);
+    if (info && info->isMotoModel) {
+      state->currentClassInfo = classInfoWithClass(info->cls);
+    }
     obj = parseValue(state);
+    MT_POP(state->currentClassInfo);
     if (nil == obj)
     {
-//      [key release];
-//      [dict release];
+      [key release];
+      currentObject = object_dispose(currentObject);
       return nil;
     }
-    [dict setObject: obj forKey: key];
-//    [key release];
-//    [obj release];
+    if (info) {
+      [currentObject setValue:obj forKey:(__bridge NSString *)info->name];
+    } else {
+      [key release];
+      return nil;
+    }
     c = consumeSpace(state);
     if (c == ',')
     {
@@ -448,19 +346,11 @@ parseObject(MTParserState *state)
   }
   // Eat the trailing }
   consumeChar(state);
-  if (!state->mutableContainers)
-  {
-//    if (NO == [dict makeImmutable])
-//    {
-      dict = [dict copy];
-//    }
-  }
-  return dict;
-  
+  return currentObject;
 }
 
 static NSNumber*
-parseNumber(MTParserState *state)
+parseNumber(MTParserStateRef state)
 {
   unichar c = currentChar(state);
   char numberBuffer[128];
@@ -534,11 +424,8 @@ parseNumber(MTParserState *state)
 }
 
 
-
-
-static id
-parseValue(MTParserState *state)
-{
+static inline id
+parseValue(MTParserStateRef state) {
   unichar c;
   
   if (state->error) { return nil; };
@@ -565,7 +452,7 @@ parseValue(MTParserState *state)
           && (consumeChar(state) == 'l'))
       {
         consumeChar(state);
-        return [NSNull null];
+        return [[NSNull null] retain];
       }
       break;
     }
@@ -577,7 +464,7 @@ parseValue(MTParserState *state)
           && (consumeChar(state) == 'e'))
       {
         consumeChar(state);
-        return [NSNumber numberWithBool:YES];
+        return [(__bridge NSNumber *)kCFBooleanTrue retain];
       }
       break;
     }
@@ -589,7 +476,7 @@ parseValue(MTParserState *state)
           && (consumeChar(state) == 'e'))
       {
         consumeChar(state);
-        return [NSNumber numberWithBool:NO];
+        return [(__bridge NSNumber *)kCFBooleanFalse retain];
       }
       break;
     }
@@ -598,31 +485,66 @@ parseValue(MTParserState *state)
   return nil;
 }
 
+@interface MTJSONSerialization : NSObject
+
++ (id)JSONObjectWithData:(NSData *)data
+                 options:(MTJSONReadingOptions)opt
+             targetClass:(Class)cls
+                   error:(NSError * _Nullable __autoreleasing *)error;
++ (id)JSONObjectWithString:(NSString *)string
+                   options:(MTJSONReadingOptions)opt
+               targetClass:(Class)cls
+                     error:(NSError *__autoreleasing  _Nullable *)error;
+
+@end
 
 @implementation MTJSONSerialization
 
-+ (id)JSONObjectWithString:(NSString *)string options:(MTJSONReadingOptions)opt error:(NSError *__autoreleasing *)error {
-  return [self JSONObjectWithData:[string dataUsingEncoding:NSUTF8StringEncoding] options:opt error:error];
++ (id)JSONObjectWithData:(NSData *)data
+                 options:(MTJSONReadingOptions)opt
+             targetClass:(Class)cls
+                   error:(NSError * _Nullable __autoreleasing *)error {
+  return [self JSONObjectWithString:[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
+                            options:opt
+                        targetClass:cls
+                              error:error];
 }
 
-+ (id)JSONObjectWithData:(NSData *)data options:(MTJSONReadingOptions)opt error:(NSError *__autoreleasing *)error {
-  uint8_t BOM[4];
-  MTParserState *p = [MTParserState new];
++ (id)JSONObjectWithString:(NSString *)string
+                   options:(MTJSONReadingOptions)opt
+               targetClass:(Class)cls
+                     error:(NSError * _Nullable __autoreleasing *)error {
+  if (!cls || !string) {
+    return nil;
+  }
+  MTParserStateRef p = (MTParserStateRef)malloc(sizeof(struct MTParserState));
   id obj;
-  [data getBytes:BOM length:4];
-  getEncoding(BOM, p);
   
-  p->source = [[NSString alloc] initWithData:data encoding:p->encoding];
+  p->source = (__bridge CFStringRef)string;
   p->updateBuffer = updateStringBuffer;
-  p->mutableContainers = (opt & NSJSONReadingMutableContainers) == NSJSONReadingMutableContainers;
-  p->mutableStrings = (opt & NSJSONReadingMutableLeaves) == NSJSONReadingMutableLeaves;
-  
+  p->mutableStrings = NO;
+  p->mutableContainers = NO;
+  p->targetClassInfo = classInfoWithClass(cls);
+  p->currentClassInfo = p->targetClassInfo;
   obj = parseValue(p);
   
   if (NULL != error) {
     *error = p->error;
   }
+  free(p);
   return obj;
+}
+
+@end
+
+@implementation NSObject (MTJSONModel)
+
++ (instancetype)instanceFromJSONData:(NSData *)jsonData {
+  return [[MTJSONSerialization JSONObjectWithData:jsonData options:kNilOptions targetClass:[self class] error:NULL] autorelease];
+}
+
++ (instancetype)instanceFromJSONString:(NSString *)jsonString {
+  return [[MTJSONSerialization JSONObjectWithString:jsonString options:kNilOptions targetClass:[self class] error:NULL] autorelease];
 }
 
 @end

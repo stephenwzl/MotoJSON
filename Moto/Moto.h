@@ -9,21 +9,25 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @protocol MTJSONSerializationHelper <NSObject>
 
+@required
 + (NSDictionary *)JSONKeyPathForProperty;
+@optional
++ (NSDictionary *)targetClassForPropertyKey;
 
 @end
 
 typedef NSJSONWritingOptions MTJSONWritingOptions;
 typedef NSJSONReadingOptions MTJSONReadingOptions;
 
+@interface NSObject (MTJSONModel)
 
-@interface MTJSONSerialization : NSObject
-
-//UTF8 string encoding specific
-+ (id)JSONObjectWithString:(NSString *)string options:(MTJSONReadingOptions)opt error:(NSError **)error;
-//any string encoding
-+ (id)JSONObjectWithData:(NSData *)data options:(MTJSONReadingOptions)opt error:(NSError **)error;
++ (instancetype _Nullable)instanceFromJSONString:(NSString *)jsonString;
++ (instancetype _Nullable)instanceFromJSONData:(NSData *)jsonData;
 
 @end
+
+NS_ASSUME_NONNULL_END

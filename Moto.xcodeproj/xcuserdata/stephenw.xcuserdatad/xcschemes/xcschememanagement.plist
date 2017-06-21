@@ -9,9 +9,19 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>motoDemo.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>6C3517511EF8C5F50043905A</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>6C7C614E1EF7CE4400DD7404</key>
 		<dict>
 			<key>primary</key>
