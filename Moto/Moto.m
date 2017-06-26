@@ -113,7 +113,7 @@ parseError(MTParserStateRef state)
   NSDictionary *userInfo = [[NSDictionary alloc] initWithObjectsAndKeys:
                             @"JSON Parse error", NSLocalizedDescriptionKey,
                             ([NSString stringWithFormat: @"Unexpected character %c at index %"PRIdPTR,
-                                (char)currentChar(state), state->sourceIndex]),
+                              (char)currentChar(state), state->sourceIndex]),
                             NSLocalizedFailureReasonErrorKey,
                             nil];
   state->error = (__bridge void *)([NSError errorWithDomain: NSCocoaErrorDomain
@@ -231,10 +231,9 @@ parseString(MTParserStateRef state)
   }
   if (!state->mutableStrings)
   {
-//    if (NO == [val makeImmutable])
-//    {
-      val = [val copy];
-//    }
+    NSMutableString *oldPtr = val;
+    val = [val copy];
+    [oldPtr release];
   }
   // Consume the trailing "
   consumeChar(state);
@@ -276,10 +275,10 @@ parseArray(MTParserStateRef state)
   consumeChar(state);
   if (!state->mutableContainers)
   {
-//    if (NO == [array makeImmutable])
-//    {
-      array = [array copy];
-//    }
+    //    if (NO == [array makeImmutable])
+    //    {
+    array = [array copy];
+    //    }
   }
   return array;
 }
@@ -289,8 +288,7 @@ parseObject(MTParserStateRef state)
 {
   unichar c = consumeSpace(state);
   id currentObject;
-  if (c != '{')
-  {
+  if (c != '{') {
     parseError(state);
     return nil;
   }
@@ -298,21 +296,16 @@ parseObject(MTParserStateRef state)
   consumeChar(state);
   currentObject = class_createInstance(state->currentClassInfo->cls, 0);
   c = consumeSpace(state);
-  while (c != '}')
-  {
+  while (c != '}') {
     id key = parseString(state);
     id obj;
     
-    if (nil == key)
-    {
-//      currentObject = object_dispose(currentObject);
+    if (nil == key) {
       return nil;
     }
     c = consumeSpace(state);
-    if (':' != c)
-    {
+    if (':' != c) {
       [key release];
-//      currentObject = object_dispose(currentObject);
       parseError(state);
       return nil;
     }
@@ -325,8 +318,7 @@ parseObject(MTParserStateRef state)
     }
     obj = parseValue(state);
     MT_POP(state->currentClassInfo);
-    if (nil == obj)
-    {
+    if (nil == obj) {
       [key release];
       currentObject = object_dispose(currentObject);
       return nil;
@@ -334,12 +326,11 @@ parseObject(MTParserStateRef state)
     if (info) {
       [currentObject setValue:obj forKey:(__bridge NSString *)info->name];
     } else {
+      // enter here means this parsed value not mapped
       [key release];
-      return nil;
     }
     c = consumeSpace(state);
-    if (c == ',')
-    {
+    if (c == ',') {
       consumeChar(state);
     }
     c = consumeSpace(state);
@@ -350,8 +341,7 @@ parseObject(MTParserStateRef state)
 }
 
 static NSNumber*
-parseNumber(MTParserStateRef state)
-{
+parseNumber(MTParserStateRef state) {
   unichar c = currentChar(state);
   char numberBuffer[128];
   char *number = numberBuffer;
@@ -362,15 +352,15 @@ parseNumber(MTParserStateRef state)
   // Define a macro to add a character to the buffer, because we'll need to do
   // it a lot.  This resizes the buffer if required.
 #define BUFFER(x) do {\
-  if (parsedSize == bufferSize)\
-  {\
-    bufferSize *= 2;\
-    if (number == numberBuffer)\
-      number = malloc(bufferSize);\
-    else\
-      number = realloc(number, bufferSize);\
-    }\
-    number[parsedSize++] = (char)x; } while (0)
+if (parsedSize == bufferSize)\
+{\
+bufferSize *= 2;\
+if (number == numberBuffer)\
+  number = malloc(bufferSize);\
+else\
+  number = realloc(number, bufferSize);\
+}\
+number[parsedSize++] = (char)x; } while (0)
   // JSON numbers must start with a - or a digit
   if (!(c == '-' || isdigit(c)))
   {
@@ -399,10 +389,8 @@ parseNumber(MTParserStateRef state)
     BUFFER(c);
     c = consumeChar(state);
     // The exponent must be a valid number
-    if (!(c == '-' || c == '+' || isdigit(c)))
-    {
-      if (number != numberBuffer)
-      {
+    if (!(c == '-' || c == '+' || isdigit(c))) {
+      if (number != numberBuffer) {
         free(number);
       }
     }
@@ -430,11 +418,10 @@ parseValue(MTParserStateRef state) {
   
   if (state->error) { return nil; };
   c = consumeSpace(state);
-  //   2.1: A JSON value MUST be an object, array, number, or string, or one of the
-  //   following three literal names:
-  //            false null true
-  switch (c)
-  {
+/*
+ * A JSON value MUST be an object, array, number, or string, of one of these three literal names: false/true/null
+ */
+  switch (c) {
     case (unichar)'"':
       return parseString(state);
     case (unichar)'[':
@@ -444,25 +431,22 @@ parseValue(MTParserStateRef state) {
     case (unichar)'-':
     case (unichar)'0' ... (unichar)'9':
       return parseNumber(state);
-      // Literal null
+//following three literal names:
     case 'n':
     {
       if ((consumeChar(state) == 'u')
           && (consumeChar(state) == 'l')
-          && (consumeChar(state) == 'l'))
-      {
+          && (consumeChar(state) == 'l')) {
         consumeChar(state);
         return [[NSNull null] retain];
       }
       break;
     }
-      // literal
     case 't':
     {
       if ((consumeChar(state) == 'r')
           && (consumeChar(state) == 'u')
-          && (consumeChar(state) == 'e'))
-      {
+          && (consumeChar(state) == 'e')) {
         consumeChar(state);
         return [(__bridge NSNumber *)kCFBooleanTrue retain];
       }
@@ -473,8 +457,7 @@ parseValue(MTParserStateRef state) {
       if ((consumeChar(state) == 'a')
           && (consumeChar(state) == 'l')
           && (consumeChar(state) == 's')
-          && (consumeChar(state) == 'e'))
-      {
+          && (consumeChar(state) == 'e')) {
         consumeChar(state);
         return [(__bridge NSNumber *)kCFBooleanFalse retain];
       }
@@ -548,3 +531,13 @@ parseValue(MTParserStateRef state) {
 }
 
 @end
+
+#if defined(DEBUG)
+void motoDebugPrint(CFDictionaryRef dict) {
+  NSDictionary *ns_dict = (__bridge NSDictionary *)dict;
+  for (NSString *key in ns_dict) {
+    NSLog(@"%@, %@", key, (void *)ns_dict[key]);
+  }
+}
+
+#endif

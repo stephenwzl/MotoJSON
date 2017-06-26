@@ -8,6 +8,9 @@
 
 
 #import <Foundation/Foundation.h>
+#if defined(DEBUG)
+extern void motoDebugPrint(CFDictionaryRef _Nonnull dict);
+#endif
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -15,8 +18,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @required
 + (NSDictionary *)JSONKeyPathForProperty;
-@optional
-+ (NSDictionary *)targetClassForPropertyKey;
 
 @end
 

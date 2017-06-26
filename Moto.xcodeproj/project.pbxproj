@@ -20,6 +20,7 @@
 		6C35176F1EF8F1590043905A /* MotoClassInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C35176E1EF8F1590043905A /* MotoClassInfo.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		6C7C61531EF7CE4400DD7404 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7C61521EF7CE4400DD7404 /* main.m */; };
 		6C7C615B1EF7D0CF00DD7404 /* Moto.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7C615A1EF7D0CF00DD7404 /* Moto.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		B59CDA15CAF46E5AB167FF83 /* Pods_motoDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B93EF0B9DF7DF6028CFD8BC /* Pods_motoDemo.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -35,6 +36,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5B93EF0B9DF7DF6028CFD8BC /* Pods_motoDemo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_motoDemo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C20F7651EF9210400D7A971 /* BatchObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BatchObject.h; sourceTree = "<group>"; };
 		6C20F7661EF9210400D7A971 /* BatchObject.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BatchObject.m; sourceTree = "<group>"; };
 		6C3517521EF8C5F50043905A /* motoDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = motoDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -54,6 +56,8 @@
 		6C7C61521EF7CE4400DD7404 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		6C7C61591EF7D0CF00DD7404 /* Moto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Moto.h; sourceTree = "<group>"; };
 		6C7C615A1EF7D0CF00DD7404 /* Moto.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Moto.m; sourceTree = "<group>"; };
+		76A9971BA4F7DD128A9FCFE3 /* Pods-motoDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-motoDemo.debug.xcconfig"; path = "Pods/Target Support Files/Pods-motoDemo/Pods-motoDemo.debug.xcconfig"; sourceTree = "<group>"; };
+		BB88F583B0BF66A9750EE6E3 /* Pods-motoDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-motoDemo.release.xcconfig"; path = "Pods/Target Support Files/Pods-motoDemo/Pods-motoDemo.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B59CDA15CAF46E5AB167FF83 /* Pods_motoDemo.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +79,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		32DB03B50CBBEFE42205C2F8 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				76A9971BA4F7DD128A9FCFE3 /* Pods-motoDemo.debug.xcconfig */,
+				BB88F583B0BF66A9750EE6E3 /* Pods-motoDemo.release.xcconfig */,
+			);
+			name = Pods;
+			sourceTree = "<group>";
+		};
 		6C3517531EF8C5F50043905A /* motoDemo */ = {
 			isa = PBXGroup;
 			children = (
@@ -107,6 +121,8 @@
 				6C7C61511EF7CE4400DD7404 /* Moto */,
 				6C3517531EF8C5F50043905A /* motoDemo */,
 				6C7C61501EF7CE4400DD7404 /* Products */,
+				32DB03B50CBBEFE42205C2F8 /* Pods */,
+				AAFAAC6F8274CFAC0D02CEB1 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -131,6 +147,14 @@
 			path = Moto;
 			sourceTree = "<group>";
 		};
+		AAFAAC6F8274CFAC0D02CEB1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5B93EF0B9DF7DF6028CFD8BC /* Pods_motoDemo.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -138,9 +162,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6C3517681EF8C5F50043905A /* Build configuration list for PBXNativeTarget "motoDemo" */;
 			buildPhases = (
+				138665DE63C41DD55591C26E /* [CP] Check Pods Manifest.lock */,
 				6C35174E1EF8C5F50043905A /* Sources */,
 				6C35174F1EF8C5F50043905A /* Frameworks */,
 				6C3517501EF8C5F50043905A /* Resources */,
+				5915BF5555C6FEF99140E7ED /* [CP] Embed Pods Frameworks */,
+				2A03D7577C1375B29EDD0FDF /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -179,6 +206,7 @@
 				TargetAttributes = {
 					6C3517511EF8C5F50043905A = {
 						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = U854V67D62;
 						ProvisioningStyle = Automatic;
 					};
 					6C7C614E1EF7CE4400DD7404 = {
@@ -219,6 +247,54 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		138665DE63C41DD55591C26E /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		2A03D7577C1375B29EDD0FDF /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-motoDemo/Pods-motoDemo-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		5915BF5555C6FEF99140E7ED /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-motoDemo/Pods-motoDemo-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		6C35174E1EF8C5F50043905A /* Sources */ = {
@@ -268,9 +344,11 @@
 /* Begin XCBuildConfiguration section */
 		6C3517661EF8C5F50043905A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 76A9971BA4F7DD128A9FCFE3 /* Pods-motoDemo.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = U854V67D62;
 				INFOPLIST_FILE = motoDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -283,9 +361,11 @@
 		};
 		6C3517671EF8C5F50043905A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB88F583B0BF66A9750EE6E3 /* Pods-motoDemo.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = U854V67D62;
 				INFOPLIST_FILE = motoDemo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";

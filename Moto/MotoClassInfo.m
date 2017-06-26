@@ -101,17 +101,25 @@ static MotoClassInfoRef allocClassInfoWithClass(Class cls) {
   unsigned int propertyCount;
   objc_property_t *properties = class_copyPropertyList(cls, &propertyCount);
   if (properties) {
-    CFMutableDictionaryRef infos = CFDictionaryCreateMutable(CFAllocatorGetDefault(), 0, NULL, NULL);
-    slf->propertyInfo = infos;
+    CFMutableDictionaryRef infos = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, NULL);
     for (unsigned int i = 0; i < propertyCount; ++i) {
       MotoPropertyInfoRef info = propertyInfoWithProperty(properties[i], slf->propertyKeyPath);
-      if (info && info->mappedValue) {
-        CFDictionarySetValue(infos,info->name, info);
-      }
       if (info->cls && [info->cls conformsToProtocol:@protocol(MTJSONSerializationHelper)]) {
         classInfoWithClass(info->cls);
       }
+      if (info && info->mappedValue) {
+        CFDictionarySetValue(infos, info->mappedValue, info);
+      }
+      else if (info && !info->mappedValue) {
+        CFBridgingRelease(info->name);
+        CFBridgingRelease(info->typeEncoding);
+        CFBridgingRelease(info->iVarName);
+        free(info);
+      }
     }
+    
+    slf->propertyInfo = infos;
+    CFBridgingRelease(infos);
     free(properties);
   } else {
     slf->propertyInfo = NULL;
